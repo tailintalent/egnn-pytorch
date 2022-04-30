@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+from utils import get_activation
 
 # helper functions
 
@@ -164,7 +165,8 @@ class EGNN(nn.Module):
         valid_radius = float('inf'),
         m_pool_method = 'sum',
         soft_edges = False,
-        coor_weights_clamp_value = None
+        coor_weights_clamp_value = None,
+        act_name = 'silu',
     ):
         super().__init__()
         assert m_pool_method in {'sum', 'mean'}, 'pool method must be either sum or mean'
@@ -178,9 +180,9 @@ class EGNN(nn.Module):
         self.edge_mlp = nn.Sequential(
             nn.Linear(edge_input_dim, edge_input_dim * 2),
             dropout,
-            SiLU(),
+            get_activation(act_name),
             nn.Linear(edge_input_dim * 2, m_dim),
-            SiLU()
+            get_activation(act_name),
         )
 
         self.edge_gate = nn.Sequential(
@@ -196,14 +198,14 @@ class EGNN(nn.Module):
         self.node_mlp = nn.Sequential(
             nn.Linear(dim + m_dim, dim * 2),
             dropout,
-            SiLU(),
+            get_activation(act_name),
             nn.Linear(dim * 2, dim),
         ) if update_feats else None
 
         self.coors_mlp = nn.Sequential(
             nn.Linear(m_dim, m_dim * 4),
             dropout,
-            SiLU(),
+            get_activation(act_name),
             nn.Linear(m_dim * 4, 1)
         ) if update_coors else None
 
